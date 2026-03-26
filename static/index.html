@@ -1,1 +1,795 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Switch Language Checker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Space+Mono:wght@400;700&display=swap');
 
+:root {
+  --red: #E4000F;
+  --red-dark: #b5000c;
+  --blue: #009AC7;
+  --dark: #111120;
+  --darker: #0b0b16;
+  --card: #18182e;
+  --card2: #20203a;
+  --border: rgba(255,255,255,0.07);
+  --text: #f0f0f0;
+  --muted: #7777aa;
+  --success: #00e676;
+  --fail: #ff5252;
+  --warn: #FFC107;
+  --r: 14px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--darker);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(228,0,15,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 30% at 80% 90%, rgba(0,154,199,0.05) 0%, transparent 60%);
+  pointer-events: none; z-index: 0;
+}
+
+.wrap {
+  max-width: 660px;
+  margin: 0 auto;
+  padding: 28px 16px 72px;
+  position: relative; z-index: 1;
+}
+
+/* ── Header ── */
+header { text-align: center; margin-bottom: 32px; animation: up .5s both; }
+
+.logo {
+  display: inline-flex; align-items: center; gap: 14px;
+  margin-bottom: 14px;
+}
+
+.switch-body {
+  display: flex; align-items: center; gap: 4px;
+}
+
+.joycon {
+  width: 16px; height: 38px;
+  border-radius: 8px;
+}
+.joycon-l { background: var(--blue); box-shadow: 0 0 12px rgba(0,154,199,.5); }
+.joycon-r { background: #e63946; box-shadow: 0 0 12px rgba(230,57,70,.5); }
+
+.console-body {
+  width: 56px; height: 38px;
+  background: #1a1a2e;
+  border: 2px solid #333;
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+}
+.console-screen {
+  width: 40px; height: 26px;
+  background: #0a1628;
+  border-radius: 2px;
+  border: 1px solid #222;
+}
+
+header h1 {
+  font-size: 2rem; font-weight: 900;
+  letter-spacing: -0.5px; line-height: 1;
+}
+header h1 em { font-style: normal; color: var(--red); }
+header p {
+  color: var(--muted);
+  font-size: .82rem;
+  font-family: 'Space Mono', monospace;
+  margin-top: 6px;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex; gap: 6px;
+  background: var(--card);
+  border-radius: var(--r);
+  padding: 6px;
+  margin-bottom: 18px;
+  animation: up .4s .08s both;
+}
+.tab {
+  flex: 1; padding: 11px;
+  border: none; background: transparent;
+  color: var(--muted);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800; font-size: .9rem;
+  border-radius: 9px; cursor: pointer;
+  transition: all .18s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.tab.on {
+  background: var(--red); color: #fff;
+  box-shadow: 0 4px 14px rgba(228,0,15,.3);
+}
+
+/* ── Panels ── */
+.panel { display: none; }
+.panel.on { display: block; animation: up .25s both; }
+
+/* Upload zone */
+.drop-zone {
+  border: 2px dashed rgba(228,0,15,.35);
+  border-radius: var(--r);
+  padding: 52px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .18s;
+  background: rgba(228,0,15,.025);
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.over {
+  border-color: var(--red);
+  background: rgba(228,0,15,.06);
+}
+.drop-zone input {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.drop-icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+.drop-zone h3 { font-weight: 800; margin-bottom: 5px; }
+.drop-zone p { color: var(--muted); font-size: .83rem; }
+
+/* Preview */
+.preview {
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--card);
+  position: relative;
+  margin-bottom: 14px;
+}
+.preview img {
+  width: 100%; max-height: 300px;
+  object-fit: contain; display: block;
+}
+.preview .x {
+  position: absolute; top: 10px; right: 10px;
+  background: rgba(0,0,0,.6);
+  border: none; color: #fff;
+  width: 30px; height: 30px; border-radius: 50%;
+  cursor: pointer; font-size: .95rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.preview .x:hover { background: var(--red); }
+
+/* Camera */
+.cam-wrap {
+  border-radius: var(--r); overflow: hidden;
+  background: #000; position: relative;
+  aspect-ratio: 4/3; margin-bottom: 14px;
+}
+#vid { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cam-frame-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.cam-frame {
+  width: 58%; height: 68%;
+  border: 2px solid rgba(228,0,15,.6);
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,.3);
+}
+.cam-controls {
+  display: flex; gap: 10px;
+  align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+
+/* Buttons */
+.btn {
+  padding: 13px 24px;
+  border: none; border-radius: 11px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800; font-size: .95rem;
+  cursor: pointer; transition: all .18s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.btn-red {
+  background: var(--red); color: #fff;
+  box-shadow: 0 4px 14px rgba(228,0,15,.3);
+  width: 100%;
+}
+.btn-red:hover:not(:disabled) {
+  background: var(--red-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(228,0,15,.4);
+}
+.btn-red:disabled { opacity: .45; cursor: not-allowed; }
+.btn-ghost {
+  background: var(--card2); color: var(--text);
+  flex: 1; border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: #28284a; }
+.btn-cap {
+  background: #fff; color: var(--dark);
+  width: 56px; height: 56px; border-radius: 50%; padding: 0;
+  font-size: 1.4rem; flex: none;
+  box-shadow: 0 4px 16px rgba(255,255,255,.2);
+}
+.btn-cap:hover { transform: scale(1.07); }
+.btn-cap:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Loading ── */
+.loading {
+  display: none; text-align: center;
+  padding: 48px 20px; animation: up .3s both;
+}
+.loading.on { display: block; }
+
+.steps-row {
+  display: flex; flex-direction: column;
+  gap: 10px; margin-bottom: 24px;
+}
+.step-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: var(--card);
+  border-radius: 10px;
+  font-size: .88rem;
+  border: 1px solid var(--border);
+  transition: all .3s;
+}
+.step-item.active {
+  border-color: rgba(228,0,15,.4);
+  background: rgba(228,0,15,.06);
+}
+.step-item.done {
+  border-color: rgba(0,230,118,.3);
+  background: rgba(0,230,118,.04);
+  color: var(--muted);
+}
+.step-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; flex-shrink: 0;
+  background: var(--card2);
+  border: 2px solid var(--border);
+  transition: all .3s;
+}
+.step-item.active .step-dot {
+  border-color: var(--red); color: var(--red);
+  animation: pulse 1s ease infinite;
+}
+.step-item.done .step-dot {
+  background: rgba(0,230,118,.15);
+  border-color: rgba(0,230,118,.4);
+  color: var(--success);
+}
+
+/* ── Results ── */
+.results { display: none; }
+.results.on { display: block; animation: up .35s both; }
+
+.game-card {
+  background: var(--card);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+}
+.game-head {
+  background: linear-gradient(135deg, #c0000a 0%, #7a0008 100%);
+  padding: 20px;
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.game-emoji {
+  width: 56px; height: 56px;
+  background: rgba(255,255,255,.15);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; flex-shrink: 0;
+}
+.game-info { flex: 1; }
+.game-info h2 { font-size: 1.2rem; font-weight: 900; line-height: 1.25; margin-bottom: 4px; }
+.game-info p { font-size: .8rem; opacity: .7; font-family: 'Space Mono', monospace; }
+.conf-pill {
+  background: rgba(255,255,255,.18);
+  padding: 4px 10px; border-radius: 20px;
+  font-size: .73rem; font-family: 'Space Mono', monospace;
+  font-weight: 700; flex-shrink: 0; white-space: nowrap;
+}
+
+/* Language badges */
+.lang-wrap { padding: 18px; }
+.lang-label {
+  font-size: .72rem;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--muted); margin-bottom: 12px;
+  font-family: 'Space Mono', monospace;
+}
+.lang-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+.lang-badge {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 18px;
+  border-radius: 11px;
+  font-weight: 800; font-size: .95rem;
+  flex: 1; min-width: 130px;
+}
+.lang-badge.yes { background: rgba(0,230,118,.1); border: 1.5px solid rgba(0,230,118,.28); color: var(--success); }
+.lang-badge.no  { background: rgba(255,82,82,.08); border: 1.5px solid rgba(255,82,82,.2); color: var(--fail); }
+.lang-badge.unk { background: rgba(255,193,7,.07); border: 1.5px solid rgba(255,193,7,.2); color: var(--warn); }
+.lang-flag { font-size: 1.5rem; }
+.lang-text { display: flex; flex-direction: column; }
+.lang-name { font-size: .9rem; }
+.lang-sub  { font-size: .72rem; opacity: .7; font-weight: 400; }
+
+/* Other languages */
+.other-langs { padding: 0 18px 18px; }
+.other-langs .lang-label { margin-bottom: 10px; }
+.pills { display: flex; flex-wrap: wrap; gap: 7px; }
+.pill {
+  padding: 5px 12px; border-radius: 20px;
+  font-size: .78rem; font-weight: 700;
+}
+.pill.yes { background: rgba(0,230,118,.12); color: var(--success); border: 1px solid rgba(0,230,118,.25); }
+.pill.no  { background: rgba(255,82,82,.07); color: #ff7070; border: 1px solid rgba(255,82,82,.15); }
+.pill.unk { background: rgba(255,193,7,.07); color: var(--warn); border: 1px solid rgba(255,193,7,.15); }
+
+/* Links */
+.ext-link {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border-radius: var(--r);
+  padding: 15px; text-decoration: none; color: var(--text);
+  transition: all .18s; margin-bottom: 10px;
+  border: 1px solid var(--border);
+}
+.ext-link:hover {
+  background: var(--card2);
+  border-color: rgba(0,154,199,.3);
+  transform: translateY(-1px);
+}
+.ext-link .ico {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem; flex-shrink: 0;
+}
+.ext-link .ltext { flex: 1; }
+.ext-link .ltext strong { display: block; font-weight: 800; font-size: .92rem; margin-bottom: 2px; }
+.ext-link .ltext span { font-size: .77rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+.reset-btn {
+  width: 100%; padding: 13px;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 11px;
+  color: var(--muted);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700; cursor: pointer;
+  transition: all .18s; margin-top: 6px;
+}
+.reset-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ── Error ── */
+.err {
+  display: none; background: rgba(255,82,82,.07);
+  border: 1px solid rgba(255,82,82,.2);
+  border-radius: var(--r); padding: 28px;
+  text-align: center; animation: up .3s both;
+}
+.err.on { display: block; }
+.err-ico { font-size: 2.5rem; margin-bottom: 12px; }
+.err h3 { color: var(--fail); margin-bottom: 8px; }
+.err p { color: var(--muted); font-size: .88rem; line-height: 1.6; }
+.err code {
+  display: block; margin-top: 10px;
+  background: rgba(0,0,0,.3); padding: 8px 12px;
+  border-radius: 8px; font-size: .78rem;
+  font-family: 'Space Mono', monospace; color: #ff9999;
+  word-break: break-all;
+}
+
+/* ── Animations ── */
+@keyframes up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(228,0,15,.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(228,0,15,0); }
+}
+
+canvas { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="switch-body">
+        <div class="joycon joycon-l"></div>
+        <div class="console-body"><div class="console-screen"></div></div>
+        <div class="joycon joycon-r"></div>
+      </div>
+    </div>
+    <h1>Switch <em>Language</em> Checker</h1>
+    <p>Reconnait ta boîte · Vérifie les langues sur Nintendo JP</p>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab on" id="t-up" onclick="switchTab('up')">📁 Upload photo</button>
+    <button class="tab"    id="t-cam" onclick="switchTab('cam')">📷 Caméra live</button>
+  </div>
+
+  <!-- Upload panel -->
+  <div class="panel on" id="p-up">
+    <div class="drop-zone" id="dz">
+      <input type="file" id="fi" accept="image/*" onchange="onFile(this.files[0])">
+      <span class="drop-icon">🎮</span>
+      <h3>Photo de la boîte Switch</h3>
+      <p>JPG · PNG · WEBP — glisse ou clique</p>
+    </div>
+    <div class="preview" id="prev" style="display:none">
+      <img id="prev-img" src="" alt="">
+      <button class="x" onclick="clearUp()">✕</button>
+    </div>
+    <div id="up-go" style="display:none;margin-top:4px">
+      <button class="btn btn-red" onclick="go('up')">🔍 Identifier ce jeu</button>
+    </div>
+  </div>
+
+  <!-- Camera panel -->
+  <div class="panel" id="p-cam">
+    <div class="cam-wrap">
+      <video id="vid" autoplay playsinline></video>
+      <div class="cam-frame-overlay"><div class="cam-frame"></div></div>
+    </div>
+    <div class="cam-controls">
+      <button class="btn btn-ghost" id="cam-toggle" onclick="toggleCam()">▶ Démarrer</button>
+      <button class="btn btn-cap"   id="cam-snap"   onclick="snap()" disabled>📷</button>
+      <button class="btn btn-ghost" id="cam-flip"   onclick="flip()" style="display:none">🔄</button>
+    </div>
+    <div class="preview" id="cam-prev" style="display:none">
+      <img id="cam-prev-img" src="" alt="">
+      <button class="x" onclick="clearCam()">✕</button>
+    </div>
+    <div id="cam-go" style="display:none;margin-top:4px">
+      <button class="btn btn-red" onclick="go('cam')">🔍 Identifier cette capture</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="steps-row" id="steps">
+      <div class="step-item" id="s0">
+        <div class="step-dot">1</div>
+        <span>Envoi de l'image à Google Lens…</span>
+      </div>
+      <div class="step-item" id="s1">
+        <div class="step-dot">2</div>
+        <span>Identification du jeu Switch…</span>
+      </div>
+      <div class="step-item" id="s2">
+        <div class="step-dot">3</div>
+        <span>Recherche sur Nintendo JP…</span>
+      </div>
+      <div class="step-item" id="s3">
+        <div class="step-dot">4</div>
+        <span>Extraction des langues supportées…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="err" id="err">
+    <div class="err-ico">😵</div>
+    <h3>Oups !</h3>
+    <p id="err-msg">Une erreur est survenue.</p>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="game-card">
+      <div class="game-head">
+        <div class="game-emoji" id="g-emoji">🎮</div>
+        <div class="game-info">
+          <h2 id="g-title">—</h2>
+          <p  id="g-meta">Nintendo Switch</p>
+        </div>
+      </div>
+
+      <div class="lang-wrap">
+        <div class="lang-label">Langues (Nintendo eShop Japon)</div>
+        <div class="lang-grid">
+          <div class="lang-badge" id="b-en">
+            <span class="lang-flag">🇬🇧</span>
+            <div class="lang-text">
+              <span class="lang-name">Anglais</span>
+              <span class="lang-sub" id="s-en">—</span>
+            </div>
+          </div>
+          <div class="lang-badge" id="b-fr">
+            <span class="lang-flag">🇫🇷</span>
+            <div class="lang-text">
+              <span class="lang-name">Français</span>
+              <span class="lang-sub" id="s-fr">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="other-langs" id="other-langs" style="display:none">
+        <div class="lang-label">Autres langues détectées</div>
+        <div class="pills" id="pills"></div>
+      </div>
+    </div>
+
+    <a id="lnk-jp" href="#" target="_blank" class="ext-link">
+      <div class="ico" style="background:var(--red)">🇯🇵</div>
+      <div class="ltext">
+        <strong>Nintendo eShop Japon</strong>
+        <span id="lnk-jp-url">store-jp.nintendo.com</span>
+      </div>
+      <span style="color:var(--muted)">→</span>
+    </a>
+
+    <a id="lnk-yt" href="#" target="_blank" class="ext-link">
+      <div class="ico" style="background:#ff0000">▶</div>
+      <div class="ltext">
+        <strong>Voir le trailer / gameplay</strong>
+        <span>YouTube</span>
+      </div>
+      <span style="color:var(--muted)">→</span>
+    </a>
+
+    <button class="reset-btn" onclick="reset()">↩ Analyser un autre jeu</button>
+  </div>
+
+</div>
+<canvas id="cv"></canvas>
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let upB64 = null, camB64 = null;
+let camStream = null, facing = 'environment';
+let stepTimer = null;
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+function switchTab(t) {
+  ['up','cam'].forEach(k => {
+    document.getElementById('t-'+k).classList.toggle('on', k===t);
+    document.getElementById('p-'+k).classList.toggle('on', k===t);
+  });
+  if (t !== 'cam' && camStream) stopCam();
+}
+
+// ── Upload ─────────────────────────────────────────────────────────────────
+const dz = document.getElementById('dz');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) onFile(f);
+});
+
+function onFile(f) {
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const src = e.target.result;
+    document.getElementById('prev-img').src = src;
+    document.getElementById('prev').style.display = 'block';
+    document.getElementById('up-go').style.display = 'block';
+    dz.style.display = 'none';
+    upB64 = src.split(',')[1];
+  };
+  r.readAsDataURL(f);
+}
+function clearUp() {
+  upB64 = null;
+  document.getElementById('prev-img').src = '';
+  document.getElementById('prev').style.display = 'none';
+  document.getElementById('up-go').style.display = 'none';
+  document.getElementById('fi').value = '';
+  dz.style.display = 'block';
+}
+
+// ── Camera ─────────────────────────────────────────────────────────────────
+async function toggleCam() {
+  camStream ? stopCam() : await startCam();
+}
+async function startCam() {
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facing, width: { ideal: 1280 } }
+    });
+    document.getElementById('vid').srcObject = camStream;
+    document.getElementById('cam-toggle').textContent = '⏹ Arrêter';
+    document.getElementById('cam-snap').disabled = false;
+    document.getElementById('cam-flip').style.display = 'block';
+  } catch(e) { showErr('Caméra inaccessible : ' + e.message); }
+}
+function stopCam() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  document.getElementById('vid').srcObject = null;
+  document.getElementById('cam-toggle').textContent = '▶ Démarrer';
+  document.getElementById('cam-snap').disabled = true;
+  document.getElementById('cam-flip').style.display = 'none';
+}
+function flip() {
+  facing = facing === 'environment' ? 'user' : 'environment';
+  stopCam(); startCam();
+}
+function snap() {
+  const v = document.getElementById('vid');
+  const cv = document.getElementById('cv');
+  cv.width = v.videoWidth; cv.height = v.videoHeight;
+  cv.getContext('2d').drawImage(v, 0, 0);
+  const src = cv.toDataURL('image/jpeg', .9);
+  camB64 = src.split(',')[1];
+  document.getElementById('cam-prev-img').src = src;
+  document.getElementById('cam-prev').style.display = 'block';
+  document.getElementById('cam-go').style.display = 'block';
+  stopCam();
+}
+function clearCam() {
+  camB64 = null;
+  document.getElementById('cam-prev-img').src = '';
+  document.getElementById('cam-prev').style.display = 'none';
+  document.getElementById('cam-go').style.display = 'none';
+}
+
+// ── Analyze ─────────────────────────────────────────────────────────────────
+function go(mode) {
+  const b64 = mode === 'up' ? upB64 : camB64;
+  if (!b64) return;
+  runAnalysis(b64);
+}
+
+async function runAnalysis(b64) {
+  hideAll();
+  document.getElementById('loading').classList.add('on');
+  animateSteps();
+
+  try {
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: b64 })
+    });
+    const data = await resp.json();
+    clearInterval(stepTimer);
+    setStep(3, 'done');
+
+    if (!resp.ok || data.error) throw new Error(data.error || 'Erreur inconnue');
+
+    hideAll();
+    showResults(data);
+  } catch(e) {
+    clearInterval(stepTimer);
+    hideAll();
+    showErr(e.message);
+  }
+}
+
+function animateSteps() {
+  let cur = 0;
+  setStep(0, 'active');
+  stepTimer = setInterval(() => {
+    setStep(cur, 'done');
+    cur++;
+    if (cur <= 3) setStep(cur, 'active');
+  }, 2000);
+}
+function setStep(i, state) {
+  const el = document.getElementById('s'+i);
+  if (!el) return;
+  el.classList.remove('active','done');
+  if (state) el.classList.add(state);
+  const dot = el.querySelector('.step-dot');
+  dot.textContent = state === 'done' ? '✓' : (i+1);
+}
+
+// ── Results ────────────────────────────────────────────────────────────────
+const LANG_MAP = {
+  english:    { label: 'Anglais',    flag: '🇬🇧', id: 'en' },
+  french:     { label: 'Français',   flag: '🇫🇷', id: 'fr' },
+  japanese:   { label: 'Japonais',   flag: '🇯🇵' },
+  german:     { label: 'Allemand',   flag: '🇩🇪' },
+  spanish:    { label: 'Espagnol',   flag: '🇪🇸' },
+  italian:    { label: 'Italien',    flag: '🇮🇹' },
+  korean:     { label: 'Coréen',     flag: '🇰🇷' },
+  chinese_s:  { label: 'Chinois S.', flag: '🇨🇳' },
+  chinese_t:  { label: 'Chinois T.', flag: '🇹🇼' },
+  portuguese: { label: 'Portugais',  flag: '🇵🇹' },
+  russian:    { label: 'Russe',      flag: '🇷🇺' },
+  dutch:      { label: 'Néerlandais',flag: '🇳🇱' },
+};
+
+function showResults(data) {
+  const title = data.identified_title || 'Jeu non identifié';
+  const nint  = data.nintendo || {};
+  const langs = nint.languages || {};
+
+  // Header
+  document.getElementById('g-title').textContent = title;
+  document.getElementById('g-meta').textContent =
+    nint.game_name_jp ? `${nint.game_name_jp} · Nintendo Switch JP` : 'Nintendo Switch';
+
+  // EN / FR badges
+  setBadge('en', langs.english);
+  setBadge('fr', langs.french);
+
+  // Other langs
+  const others = Object.entries(langs).filter(([k]) => !['english','french'].includes(k));
+  const pillsEl = document.getElementById('pills');
+  pillsEl.innerHTML = '';
+  let hasOther = false;
+  others.forEach(([k, v]) => {
+    const info = LANG_MAP[k];
+    if (!info) return;
+    const cls = v === true ? 'yes' : v === false ? 'no' : 'unk';
+    const icon = v === true ? '✓' : v === false ? '✗' : '?';
+    const pill = document.createElement('span');
+    pill.className = 'pill ' + cls;
+    pill.textContent = `${info.flag} ${info.label} ${icon}`;
+    pillsEl.appendChild(pill);
+    hasOther = true;
+  });
+  document.getElementById('other-langs').style.display = hasOther ? 'block' : 'none';
+
+  // Links
+  const jpUrl = nint.game_url || nint.search_url || '#';
+  document.getElementById('lnk-jp').href = jpUrl;
+  document.getElementById('lnk-jp-url').textContent =
+    jpUrl.length > 55 ? jpUrl.substring(0,55)+'…' : jpUrl;
+
+  const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' Nintendo Switch')}`;
+  document.getElementById('lnk-yt').href = ytUrl;
+
+  document.getElementById('results').classList.add('on');
+}
+
+function setBadge(id, val) {
+  const badge  = document.getElementById('b-'+id);
+  const status = document.getElementById('s-'+id);
+  badge.className = 'lang-badge ' + (val === true ? 'yes' : val === false ? 'no' : 'unk');
+  status.textContent = val === true ? 'Supporté ✓' : val === false ? 'Non disponible ✗' : 'Non détecté ?';
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────
+function hideAll() {
+  ['loading','err','results'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('on');
+    if (id === 'loading') el.classList.remove('on');
+  });
+  document.getElementById('loading').classList.remove('on');
+  document.getElementById('err').classList.remove('on');
+  document.getElementById('results').classList.remove('on');
+  // Reset steps
+  for (let i=0;i<4;i++) setStep(i, '');
+}
+function showErr(msg) {
+  document.getElementById('err-msg').textContent = msg;
+  document.getElementById('err').classList.add('on');
+}
+function reset() {
+  hideAll();
+  clearUp();
+  clearCam();
+  upB64 = null; camB64 = null;
+}
+</script>
+</body>
+</html>
